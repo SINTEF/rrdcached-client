@@ -1,6 +1,8 @@
 use nom::{
+    branch::alt,
     bytes::complete::{tag, take_until1},
     character::complete::{i64 as parse_i64, newline, not_line_ending, space1, u64 as parse_u64},
+    combinator::value,
     multi::separated_list1,
     number::complete::double,
     sequence::{terminated, tuple},
@@ -75,7 +77,7 @@ pub fn parse_fetch_line(input: &str) -> IResult<&str, (usize, Vec<f64>)> {
         parse_u64,
         tag(":"),
         space1,
-        separated_list1(space1, double),
+        separated_list1(space1, alt((double, value(f64::NAN, tag("-nan"))))),
         newline,
     ))(input)
     .map(|(i, (timestamp, _, _, values, _))| (i, (timestamp as usize, values)))
@@ -208,5 +210,15 @@ mod tests {
         let input = "End: 1708886440";
         let result = parse_fetch_line(input);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_minus_nan_handling() {
+        // Some systems somehow return -nan sometimes
+        let input = "1708800040: -nan -nan\n";
+        let result = parse_fetch_line(input).unwrap().1;
+        assert_eq!(result.0, 1708800040);
+        assert_eq!(result.1.len(), 2);
+        assert!(result.1.iter().all(|f| f.is_nan()));
     }
 }
