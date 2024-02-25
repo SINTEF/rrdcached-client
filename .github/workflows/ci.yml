@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo mkdir -p /tmp/rrdcached/db /tmp/rrdcached/journal &&
           sudo chown -R $USER /tmp/rrdcached &&
-          rrdcached -B -R -t 2 -b /tmp/rrdcached/db -j /tmp/rrdcached/journal -l 42217 -p /tmp/rrdcached.pid &&
+          rrdcached -B -R -t 2 -b /tmp/rrdcached/db -j /tmp/rrdcached/journal -l :42217 -p /tmp/rrdcached.pid &&
           socat UNIX-LISTEN:./rrdcached.sock,reuseaddr,fork TCP:localhost:42217 &
       - name: Test the project
         run: cargo test --verbose
