@@ -1,11 +1,11 @@
-mod batch_update;
-mod client;
-mod consolidation_function;
-mod create;
-mod errors;
-mod fetch;
-mod now;
-mod parsers;
-mod sanitisation;
+pub mod batch_update;
+pub mod client;
+pub mod consolidation_function;
+pub mod create;
+pub mod errors;
+pub mod fetch;
+pub mod now;
+pub mod parsers;
+pub mod sanitisation;
 
 pub use client::RRDCachedClient;
