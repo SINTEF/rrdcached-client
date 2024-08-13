@@ -1,6 +1,6 @@
 [package]
 name = "rrdcached-client"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A RRDCached (RRDtool) client library"
 license = "Apache-2.0"
@@ -11,9 +11,9 @@ repository = "https://github.com/SINTEF/rrdcached-client"
 include = ["README.md", "LICENSE", "src/*.rs", "Cargo.toml", "Cargo.lock"]
 
 [dependencies]
-tokio = { version = "1.36", features = ["full"] }
+tokio = { version = "1.39", features = ["full"] }
 nom = "7.1"
 thiserror = "1.0"
 
 [dev-dependencies]
-serial_test = "3.0"
+serial_test = "3.1"

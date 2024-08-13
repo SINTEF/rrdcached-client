@@ -8,18 +8,33 @@ RRDtool databases are time series databases using a round-robin data structure. 
 
 While this technology fell out of fashion compared to the more modern time series databases, such as Prometheus or InfluxDB, it is still appreciated because it is simple and works well for some workloads.
 
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+rrdcached-client = "0.1"
+```
+
 ## Example
 
 ```rust
 let mut client = RRDCachedClient::connect_tcp("localhost:42217")
     .await?;
 
-create_simple_rrd(&mut client, "hello".to_string()).await;
+client.create("hello", &[
+    RRA::Gauge {
+        xff: 0.5,
+        steps: 1,
+        rows: 10,
+    }
+]).await?;
 
 client.update_one("hello", None, 4.2).await?;
 ```
 
-## Running a RRDCached server.
+## Running a RRDCached server
 
 The repository includes a Dockerfile to quickly run an RRDCached server for testing and development purposes. It listens on localhost:42217 (tcp).
 
