@@ -5,17 +5,18 @@ use nom::{
     combinator::value,
     multi::separated_list1,
     number::complete::double,
-    sequence::{terminated, tuple},
-    IResult,
+    sequence::terminated,
+    IResult, Parser,
 };
 
 use crate::errors::RRDCachedClientError;
 
 pub fn parse_response_line(input: &str) -> Result<(i64, &str), RRDCachedClientError> {
-    let parse_result: IResult<&str, (i64, &str)> = tuple((
+    let parse_result: IResult<&str, (i64, &str)> = (
         terminated(parse_i64, space1),
         terminated(not_line_ending, newline),
-    ))(input);
+    )
+        .parse(input);
 
     match parse_result {
         Ok((_, (code, message))) => Ok((code, message)),
@@ -24,10 +25,11 @@ pub fn parse_response_line(input: &str) -> Result<(i64, &str), RRDCachedClientEr
 }
 
 pub fn parse_queue_line(input: &str) -> Result<(&str, usize), RRDCachedClientError> {
-    let parse_result: IResult<&str, (u64, &str)> = tuple((
+    let parse_result: IResult<&str, (u64, &str)> = (
         terminated(parse_u64, space1),
         terminated(not_line_ending, newline),
-    ))(input);
+    )
+        .parse(input);
 
     match parse_result {
         Ok((_, (code, message))) => Ok((message, code as usize)),
@@ -37,12 +39,13 @@ pub fn parse_queue_line(input: &str) -> Result<(&str, usize), RRDCachedClientErr
 
 pub fn parse_stats_line(input: &str) -> Result<(&str, i64), RRDCachedClientError> {
     // name, : , at least one whitespace, number, newline
-    let parse_result: IResult<&str, (&str, &str, &str, i64)> = tuple((
+    let parse_result: IResult<&str, (&str, &str, &str, i64)> = (
         take_until1(":"),
         tag(":"),
         space1,
         terminated(parse_i64, newline),
-    ))(input);
+    )
+        .parse(input);
 
     match parse_result {
         Ok((_, (name, _, _, value))) => Ok((name, value)),
@@ -59,12 +62,13 @@ pub fn parse_timestamp(input: &str) -> Result<usize, RRDCachedClientError> {
 }
 
 pub fn parse_fetch_header_line(input: &str) -> Result<(String, String), RRDCachedClientError> {
-    let parse_result: IResult<&str, (&str, &str, &str, &str)> = tuple((
+    let parse_result: IResult<&str, (&str, &str, &str, &str)> = (
         take_until1(":"),
         tag(":"),
         space1,
         terminated(not_line_ending, newline),
-    ))(input);
+    )
+        .parse(input);
 
     match parse_result {
         Ok((_, (name, _tag, _space, value))) => Ok((name.to_string(), value.to_string())),
@@ -73,14 +77,15 @@ pub fn parse_fetch_header_line(input: &str) -> Result<(String, String), RRDCache
 }
 
 pub fn parse_fetch_line(input: &str) -> IResult<&str, (usize, Vec<f64>)> {
-    tuple((
+    (
         parse_u64,
         tag(":"),
         space1,
         separated_list1(space1, alt((double, value(f64::NAN, tag("-nan"))))),
         newline,
-    ))(input)
-    .map(|(i, (timestamp, _, _, values, _))| (i, (timestamp as usize, values)))
+    )
+        .parse(input)
+        .map(|(i, (timestamp, _, _, values, _))| (i, (timestamp as usize, values)))
 }
 
 #[cfg(test)]
