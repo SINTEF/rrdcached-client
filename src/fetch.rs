@@ -84,13 +84,25 @@ impl FetchResponse {
             }
         }
 
+        let flush_version = flush_version
+            .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch flush version".to_string()))?;
+        let start = start
+            .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch start".to_string()))?;
+        let end = end.ok_or_else(|| RRDCachedClientError::Parsing("missing fetch end".to_string()))?;
+        let step =
+            step.ok_or_else(|| RRDCachedClientError::Parsing("missing fetch step".to_string()))?;
+        let ds_count = ds_count
+            .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch ds count".to_string()))?;
+        let ds_names = ds_names
+            .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch ds names".to_string()))?;
+
         Ok(FetchResponse {
-            flush_version: flush_version.unwrap_or(0),
-            start: start.unwrap_or(0),
-            end: end.unwrap_or(0),
-            step: step.unwrap_or(0),
-            ds_count: ds_count.unwrap_or(0),
-            ds_names: ds_names.unwrap_or(Vec::new()),
+            flush_version,
+            start,
+            end,
+            step,
+            ds_count,
+            ds_names,
             data,
         })
     }
@@ -169,38 +181,32 @@ mod tests {
             "1708800040: 1.0 2.0\n".to_string(),
         ];
 
-        // Expect defaults for missing fields
-        let expected = FetchResponse {
-            flush_version: 1,
-            start: 0,             // Default due to missing
-            end: 0,               // Default due to missing
-            step: 0,              // Default due to missing
-            ds_count: 0,          // Default due to missing
-            ds_names: Vec::new(), // Default due to missing
-            data: vec![(1708800040, vec![1.0, 2.0])],
-        };
-
-        let result = FetchResponse::from_lines(input).unwrap();
-        assert_eq!(result, expected);
+        let result = FetchResponse::from_lines(input);
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_empty_input() {
         let input: Vec<String> = vec![];
 
-        let _ = FetchResponse::from_lines(input).unwrap();
+        let result = FetchResponse::from_lines(input);
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_no_data_lines() {
         let input = vec![
             "FlushVersion: 1\n".to_string(),
+            "Start: 1708800030\n".to_string(),
+            "End: 1708886440\n".to_string(),
+            "Step: 10\n".to_string(),
+            "DSCount: 2\n".to_string(),
             "DSName: ds1 ds2\n".to_string(),
             // No data lines
         ];
 
-        // Expected behavior could vary, this is just an example
-        let _ = FetchResponse::from_lines(input).unwrap();
+        let result = FetchResponse::from_lines(input).unwrap();
+        assert!(result.data.is_empty());
     }
 
     #[test]

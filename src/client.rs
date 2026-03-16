@@ -106,7 +106,12 @@ where
     /// Ping the server to check if it's alive.
     pub async fn ping(&mut self) -> Result<(), RRDCachedClientError> {
         let (_, message) = self.send_command("PING\n").await?;
-        assert!(message == "PONG");
+        if message != "PONG" {
+            return Err(RRDCachedClientError::UnexpectedResponse(
+                0,
+                message.to_string(),
+            ));
+        }
         Ok(())
     }
 
@@ -427,7 +432,7 @@ where
             }
         }
         command.push('\n');
-        assert!(command.len() == capacity);
+        debug_assert_eq!(command.len(), capacity);
 
         let (nb_lines, _message) = self.send_command(&command).await?;
         let lines = self.read_n_lines(nb_lines).await?;
