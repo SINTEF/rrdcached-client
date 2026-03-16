@@ -742,17 +742,18 @@ mod tests {
         create_simple_rrd(&mut client, "test-batch-1".to_string()).await;
         create_simple_rrd(&mut client, "test-batch-2".to_string()).await;
 
+        let timestamp = now_timestamp().unwrap();
+
         let commands = vec![
-            BatchUpdate::new("test-batch-1", None, vec![1.0]).unwrap(),
-            BatchUpdate::new("test-batch-2", None, vec![2.0]).unwrap(),
+            BatchUpdate::new("test-batch-1", Some(timestamp), vec![1.0]).unwrap(),
+            BatchUpdate::new("test-batch-2", Some(timestamp), vec![2.0]).unwrap(),
         ];
         client.batch(commands).await.unwrap();
 
-        // Let's do the errors, it will fail
-        // because the time is the same
+        // Reuse the same timestamp so the second update is rejected deterministically.
         let commands = vec![
-            BatchUpdate::new("test-batch-1", None, vec![3.0]).unwrap(),
-            BatchUpdate::new("test-batch-2", None, vec![4.0]).unwrap(),
+            BatchUpdate::new("test-batch-1", Some(timestamp), vec![3.0]).unwrap(),
+            BatchUpdate::new("test-batch-2", Some(timestamp), vec![4.0]).unwrap(),
         ];
         let result = client.batch(commands).await;
         assert!(result.is_err());
