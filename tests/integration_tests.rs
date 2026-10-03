@@ -64,6 +64,7 @@ async fn test_create() {
             ],
             start_timestamp: 1609459200,
             step_seconds: 1,
+            no_overwrite: false,
         })
         .await
         .unwrap();
@@ -98,6 +99,7 @@ async fn create_simple_rrd(client: &mut RRDCachedClient<TcpStream>, name: String
             }],
             start_timestamp: 1609459200,
             step_seconds: 1,
+            no_overwrite: false,
         })
         .await
         .unwrap();
@@ -148,4 +150,48 @@ async fn test_batch() {
         BatchUpdate::new(&name, None, vec![2.0]).unwrap(),
     ];
     client.batch(commands).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_create_no_overwrite_keeps_the_existing_file() {
+    let mut client = RRDCachedClient::connect_tcp("localhost:42217")
+        .await
+        .unwrap();
+    let name = format!(
+        "test-no-overwrite-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
+    let arguments = |no_overwrite| CreateArguments {
+        path: name.clone(),
+        data_sources: vec![CreateDataSource {
+            name: "ds1".to_string(),
+            minimum: None,
+            maximum: None,
+            heartbeat: 100,
+            serie_type: CreateDataSourceType::Gauge,
+        }],
+        round_robin_archives: vec![CreateRoundRobinArchive {
+            consolidation_function: ConsolidationFunction::Average,
+            xfiles_factor: 0.5,
+            steps: 1,
+            rows: 100,
+        }],
+        start_timestamp: 1609459200,
+        step_seconds: 1,
+        no_overwrite,
+    };
+
+    client.create(arguments(true)).await.unwrap();
+    client
+        .update_one(&name, Some(1609459210), 4.2)
+        .await
+        .unwrap();
+
+    // The file exists: it is refused, and the data is still there
+    let error = client.create(arguments(true)).await.unwrap_err();
+    assert!(error.to_string().contains("File exists"), "{error}");
+    assert_eq!(client.last(&name).await.unwrap(), 1609459210);
 }

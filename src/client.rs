@@ -508,6 +508,7 @@ mod tests {
                 }],
                 start_timestamp: 1609459200,
                 step_seconds: 1,
+                no_overwrite: false,
             })
             .await
             .unwrap();
@@ -554,6 +555,7 @@ mod tests {
                 ],
                 start_timestamp: 1609459200,
                 step_seconds: 1,
+                no_overwrite: false,
             })
             .await
             .unwrap();
@@ -808,6 +810,7 @@ mod tests {
                 ],
                 start_timestamp: 1609459200,
                 step_seconds: 1,
+                no_overwrite: false,
             })
             .await
             .unwrap();
