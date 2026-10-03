@@ -14,7 +14,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rrdcached-client = "0.1"
+rrdcached-client = "0.4"
 ```
 
 ## Example
