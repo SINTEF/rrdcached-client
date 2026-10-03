@@ -163,6 +163,10 @@ pub struct CreateArguments {
 
     /// Number of seconds between two data points
     pub step_seconds: u64,
+
+    /// Refuse to create the file if it exists already (`-O`), instead of replacing it
+    /// with all its data. The daemon answers with an error that says the file exists.
+    pub no_overwrite: bool,
 }
 
 impl CreateArguments {
@@ -194,6 +198,9 @@ impl CreateArguments {
             "{}.rrd -s {} -b {}",
             self.path, self.step_seconds, self.start_timestamp
         );
+        if self.no_overwrite {
+            result.push_str(" -O");
+        }
         for data_serie in &self.data_sources {
             result.push(' ');
             result.push_str(&data_serie.to_str());
@@ -364,6 +371,7 @@ mod tests {
             }],
             start_timestamp: 1609459200,
             step_seconds: 300,
+            no_overwrite: false,
         };
         assert!(valid_args.validate().is_ok());
 
@@ -402,9 +410,37 @@ mod tests {
             }],
             start_timestamp: 1609459200,
             step_seconds: 300,
+            no_overwrite: false,
         };
         let expected_str =
             "test_path.rrd -s 300 -b 1609459200 DS:ds1:GAUGE:300:0:100 RRA:AVERAGE:0.5:1:100";
         assert_eq!(args.to_str(), expected_str);
+    }
+
+    #[test]
+    fn test_create_arguments_to_str_no_overwrite() {
+        let args = CreateArguments {
+            path: "test_path".to_string(),
+            data_sources: vec![CreateDataSource {
+                name: "ds1".to_string(),
+                minimum: None,
+                maximum: None,
+                heartbeat: 300,
+                serie_type: CreateDataSourceType::Gauge,
+            }],
+            round_robin_archives: vec![CreateRoundRobinArchive {
+                consolidation_function: ConsolidationFunction::Average,
+                xfiles_factor: 0.5,
+                steps: 1,
+                rows: 100,
+            }],
+            start_timestamp: 1609459200,
+            step_seconds: 300,
+            no_overwrite: true,
+        };
+        assert_eq!(
+            args.to_str(),
+            "test_path.rrd -s 300 -b 1609459200 -O DS:ds1:GAUGE:300:U:U RRA:AVERAGE:0.5:1:100"
+        );
     }
 }
