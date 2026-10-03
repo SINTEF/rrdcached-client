@@ -57,14 +57,13 @@ impl CreateDataSource {
                 "heartbeat must be greater than 0".to_string(),
             ));
         }
-        if let Some(minimum) = self.minimum {
-            if let Some(maximum) = self.maximum {
-                if maximum <= minimum {
-                    return Err(RRDCachedClientError::InvalidCreateDataSerie(
-                        "maximum must be greater than to minimum".to_string(),
-                    ));
-                }
-            }
+        if let Some(minimum) = self.minimum
+            && let Some(maximum) = self.maximum
+            && maximum <= minimum
+        {
+            return Err(RRDCachedClientError::InvalidCreateDataSerie(
+                "maximum must be greater than to minimum".to_string(),
+            ));
         }
 
         check_data_source_name(&self.name)?;

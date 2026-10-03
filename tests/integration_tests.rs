@@ -1,9 +1,9 @@
 use rrdcached_client::{
+    RRDCachedClient,
     batch_update::BatchUpdate,
     consolidation_function::ConsolidationFunction,
     create::{CreateArguments, CreateDataSource, CreateDataSourceType, CreateRoundRobinArchive},
     now::now_timestamp,
-    RRDCachedClient,
 };
 use tokio::net::TcpStream;
 
@@ -69,6 +69,16 @@ async fn test_create() {
         .unwrap();
 }
 
+/// A unique RRD name, so that the tests can be run again without waiting
+/// for the previous run's updates to be in the past.
+fn unique_name(prefix: &str) -> String {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    format!("{prefix}-{nanos}")
+}
+
 async fn create_simple_rrd(client: &mut RRDCachedClient<TcpStream>, name: String) {
     client
         .create(CreateArguments {
@@ -99,11 +109,9 @@ async fn test_update() {
         .await
         .unwrap();
 
-    create_simple_rrd(&mut client, "test-integrations-update".to_string()).await;
-    client
-        .update_one("test-integrations-update", None, 4.2)
-        .await
-        .unwrap();
+    let name = unique_name("test-integrations-update");
+    create_simple_rrd(&mut client, name.clone()).await;
+    client.update_one(&name, None, 4.2).await.unwrap();
 }
 
 #[tokio::test]
@@ -112,27 +120,16 @@ async fn test_double_create() {
         .await
         .unwrap();
 
-    create_simple_rrd(&mut client, "test-integrations-double-create".to_string()).await;
-    let timestamp_last = client
-        .last("test-integrations-double-create")
-        .await
-        .unwrap();
-    client
-        .update_one("test-integrations-double-create", None, 4.2)
-        .await
-        .unwrap();
-    let new_timestamp = client
-        .last("test-integrations-double-create")
-        .await
-        .unwrap();
+    let name = unique_name("test-integrations-double-create");
+    create_simple_rrd(&mut client, name.clone()).await;
+    let timestamp_last = client.last(&name).await.unwrap();
+    client.update_one(&name, None, 4.2).await.unwrap();
+    let new_timestamp = client.last(&name).await.unwrap();
 
     assert!(new_timestamp > timestamp_last);
 
-    create_simple_rrd(&mut client, "test-integrations-double-create".to_string()).await;
-    let not_overwritten_timestamp = client
-        .last("test-integrations-double-create")
-        .await
-        .unwrap();
+    create_simple_rrd(&mut client, name.clone()).await;
+    let not_overwritten_timestamp = client.last(&name).await.unwrap();
     assert_eq!(not_overwritten_timestamp, new_timestamp);
 }
 
@@ -142,12 +139,13 @@ async fn test_batch() {
         .await
         .unwrap();
 
-    create_simple_rrd(&mut client, "test-integrations-batch".to_string()).await;
+    let name = unique_name("test-integrations-batch");
+    create_simple_rrd(&mut client, name.clone()).await;
 
     let now = now_timestamp().unwrap();
     let commands = vec![
-        BatchUpdate::new("test-integrations-batch", Some(now - 2), vec![1.0]).unwrap(),
-        BatchUpdate::new("test-integrations-batch", None, vec![2.0]).unwrap(),
+        BatchUpdate::new(&name, Some(now - 2), vec![1.0]).unwrap(),
+        BatchUpdate::new(&name, None, vec![2.0]).unwrap(),
     ];
     client.batch(commands).await.unwrap();
 }

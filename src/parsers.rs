@@ -1,4 +1,5 @@
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_until1},
     character::complete::{i64 as parse_i64, newline, not_line_ending, space1, u64 as parse_u64},
@@ -6,7 +7,6 @@ use nom::{
     multi::separated_list1,
     number::complete::double,
     sequence::terminated,
-    IResult, Parser,
 };
 
 use crate::errors::RRDCachedClientError;

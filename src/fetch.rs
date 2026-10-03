@@ -84,11 +84,13 @@ impl FetchResponse {
             }
         }
 
-        let flush_version = flush_version
-            .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch flush version".to_string()))?;
+        let flush_version = flush_version.ok_or_else(|| {
+            RRDCachedClientError::Parsing("missing fetch flush version".to_string())
+        })?;
         let start = start
             .ok_or_else(|| RRDCachedClientError::Parsing("missing fetch start".to_string()))?;
-        let end = end.ok_or_else(|| RRDCachedClientError::Parsing("missing fetch end".to_string()))?;
+        let end =
+            end.ok_or_else(|| RRDCachedClientError::Parsing("missing fetch end".to_string()))?;
         let step =
             step.ok_or_else(|| RRDCachedClientError::Parsing("missing fetch step".to_string()))?;
         let ds_count = ds_count
