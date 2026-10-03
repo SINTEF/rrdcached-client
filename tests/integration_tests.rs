@@ -116,23 +116,28 @@ async fn test_update() {
     client.update_one(&name, None, 4.2).await.unwrap();
 }
 
+/// By default, creating an RRD that exists already replaces it with an empty one.
+///
+/// The daemon keeps the last update time of the files it knows in its cache,
+/// so the file is forgotten to read the actual state from the disk.
 #[tokio::test]
-async fn test_double_create() {
+async fn test_create_overwrites_by_default() {
     let mut client = RRDCachedClient::connect_tcp("localhost:42217")
         .await
         .unwrap();
 
-    let name = unique_name("test-integrations-double-create");
+    let name = unique_name("test-integrations-overwrite");
     create_simple_rrd(&mut client, name.clone()).await;
-    let timestamp_last = client.last(&name).await.unwrap();
-    client.update_one(&name, None, 4.2).await.unwrap();
-    let new_timestamp = client.last(&name).await.unwrap();
-
-    assert!(new_timestamp > timestamp_last);
+    client
+        .update_one(&name, Some(1609459210), 4.2)
+        .await
+        .unwrap();
+    client.flush(&name).await.unwrap();
+    assert_eq!(client.last(&name).await.unwrap(), 1609459210);
 
     create_simple_rrd(&mut client, name.clone()).await;
-    let not_overwritten_timestamp = client.last(&name).await.unwrap();
-    assert_eq!(not_overwritten_timestamp, new_timestamp);
+    client.forget(&name).await.unwrap();
+    assert_eq!(client.last(&name).await.unwrap(), 1609459200);
 }
 
 #[tokio::test]
@@ -190,8 +195,11 @@ async fn test_create_no_overwrite_keeps_the_existing_file() {
         .await
         .unwrap();
 
-    // The file exists: it is refused, and the data is still there
+    client.flush(&name).await.unwrap();
+
+    // The file exists: it is refused, and the data is still there on the disk
     let error = client.create(arguments(true)).await.unwrap_err();
     assert!(error.to_string().contains("File exists"), "{error}");
+    client.forget(&name).await.unwrap();
     assert_eq!(client.last(&name).await.unwrap(), 1609459210);
 }
