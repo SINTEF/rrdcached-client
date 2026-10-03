@@ -474,7 +474,15 @@ mod tests {
 
         let (header, lines) = client.help(None).await.unwrap();
         assert_eq!(header, "Command overview");
-        assert_eq!(lines.len(), 22);
+        // The number of commands depends on the rrdcached version.
+        for command in [
+            "UPDATE", "FLUSH", "PING", "BATCH", "FETCH", "INFO", "CREATE",
+        ] {
+            assert!(
+                lines.iter().any(|line| line.starts_with(command)),
+                "missing {command} in the help"
+            );
+        }
 
         let (header, lines) = client.help(Some("PING")).await.unwrap();
         assert_eq!(header, "Help for PING");
@@ -637,10 +645,9 @@ mod tests {
             .await
             .unwrap();
 
-        let lines = client.queue().await.unwrap();
-
-        // I didn't manage to get a non-empty queue...
-        assert!(lines.is_empty());
+        // The queue is shared with the other tests running in parallel,
+        // so its content can't be asserted.
+        client.queue().await.unwrap();
     }
 
     #[tokio::test]

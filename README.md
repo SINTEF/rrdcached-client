@@ -36,7 +36,7 @@ client.update_one("hello", None, 4.2).await?;
 
 ## Running a RRDCached server
 
-The repository includes a Dockerfile to quickly run an RRDCached server for testing and development purposes. It listens on localhost:42217 (tcp).
+The repository includes a Dockerfile to quickly run an RRDCached server for testing and development purposes. It builds the latest upstream RRDtool release from source, as the Debian package is stuck on 1.7.2. It listens on localhost:42217 (tcp).
 
 ```bash
 docker build . -f rrdcached.Dockerfile -t rrdcached
